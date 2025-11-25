@@ -1,51 +1,142 @@
-import { createContext, ReactNode, useContext, useMemo, useState } from 'react';
-import type { Role } from '../types';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { getFirestore, doc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
+import type { User } from 'firebase/auth';
+import { initFirebase } from '../firebaseConfig';
+import type { UserProfile, UserRole, Category } from '../types';
 
 interface AppContextValue {
-  role: Role | null;
-  selectedCategoryIds: string[];
-  setRole: (role: Role) => void;
-  toggleCategory: (categoryId: string) => void;
-  clearSelections: () => void;
+  user: User | null;
+  db: ReturnType<typeof getFirestore> | null;
+  isReady: boolean;
+  profile: UserProfile | null | undefined; // null = loading, undefined = none
+  saveRole: (role: UserRole) => Promise<void>;
+  saveCategory: (category: Category) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextValue | undefined>(undefined);
 
-interface ProviderProps {
-  children: ReactNode;
-}
+export function AppProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [db, setDb] = useState<ReturnType<typeof getFirestore> | null>(null);
+  const [isReady, setIsReady] = useState(false);
+  const [profile, setProfile] = useState<UserProfile | null | undefined>(null);
 
-export function AppContextProvider({ children }: ProviderProps) {
-  const [role, setRole] = useState<Role | null>(null);
-  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+  // 1. Initialize Firebase and auth
+  useEffect(() => {
+    let unsubscribeProfile: (() => void) | null = null;
 
-  const toggleCategory = (categoryId: string) => {
-    setSelectedCategoryIds((prev) =>
-      prev.includes(categoryId)
-        ? prev.filter((id) => id !== categoryId)
-        : [...prev, categoryId]
+    (async () => {
+      try {
+        const { authUser, db } = await initFirebase();
+        setUser(authUser);
+        setDb(db);
+
+        if (authUser) {
+          const profileRef = doc(
+            db,
+            'artifacts',
+            'shuaka',
+            'users',
+            authUser.uid,
+            'profile',
+            'user_data'
+          );
+
+          // listen to profile changes
+          unsubscribeProfile = onSnapshot(
+            profileRef,
+            (snap) => {
+              if (snap.exists()) {
+                setProfile(snap.data() as UserProfile);
+              } else {
+                setProfile(undefined);
+              }
+            },
+            (err) => {
+              console.error('[AppContext] Profile listener error', err);
+              setProfile(undefined);
+            }
+          );
+        } else {
+          setProfile(undefined);
+        }
+      } catch (error) {
+        console.error('[AppContext] Firebase init failed', error);
+        setProfile(undefined);
+      } finally {
+        setIsReady(true);
+      }
+    })();
+
+    return () => {
+      if (unsubscribeProfile) unsubscribeProfile();
+    };
+  }, []);
+
+  const saveRole = async (role: UserRole) => {
+    if (!user || !db) return;
+
+    const profileRef = doc(
+      db,
+      'artifacts',
+      'shuaka',
+      'users',
+      user.uid,
+      'profile',
+      'user_data'
+    );
+
+    await setDoc(
+      profileRef,
+      {
+        role,
+        category: null,
+        isProfileComplete: false,
+        createdAt: serverTimestamp(),
+      },
+      { merge: true }
     );
   };
 
-  const clearSelections = () => {
-    setRole(null);
-    setSelectedCategoryIds([]);
+  const saveCategory = async (category: Category) => {
+    if (!user || !db) return;
+
+    const profileRef = doc(
+      db,
+      'artifacts',
+      'shuaka',
+      'users',
+      user.uid,
+      'profile',
+      'user_data'
+    );
+
+    await setDoc(
+      profileRef,
+      {
+        category,
+        isProfileComplete: true,
+      },
+      { merge: true }
+    );
   };
 
-  const value = useMemo(
-    () => ({ role, selectedCategoryIds, setRole, toggleCategory, clearSelections }),
-    [role, selectedCategoryIds]
-  );
+  const value: AppContextValue = {
+    user,
+    db,
+    isReady,
+    profile,
+    saveRole,
+    saveCategory,
+  };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
 
 export function useAppContext() {
-  const context = useContext(AppContext);
-
-  if (!context) {
-    throw new Error('useAppContext must be used within an AppContextProvider');
+  const ctx = useContext(AppContext);
+  if (!ctx) {
+    throw new Error('useAppContext must be used inside AppProvider');
   }
-
-  return context;
+  return ctx;
 }

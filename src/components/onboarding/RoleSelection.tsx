@@ -1,47 +1,74 @@
-import { PrimaryButton } from '../ui/PrimaryButton';
+import React, { useState } from 'react';
+import { UserRole } from '../../types';
 import { useAppContext } from '../../context/AppContext';
-import type { Role } from '../../types';
+import { PrimaryButton } from '../ui/PrimaryButton';
 
-interface RoleOption {
-  id: Role;
-  title: string;
-  description: string;
-}
+export const RoleSelection: React.FC = () => {
+  const { saveRole } = useAppContext();
+  const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
+  const [saving, setSaving] = useState(false);
 
-interface RoleSelectionProps {
-  roles: RoleOption[];
-}
+  const onContinue = async () => {
+    if (!selectedRole) return;
+    setSaving(true);
+    try {
+      await saveRole(selectedRole);
+    } finally {
+      setSaving(false);
+    }
+  };
 
-export function RoleSelection({ roles }: RoleSelectionProps) {
-  const { role, setRole } = useAppContext();
+  const Card: React.FC<{
+    role: UserRole;
+    title: string;
+    description: string;
+    emoji: string;
+  }> = ({ role, title, description, emoji }) => {
+    const active = selectedRole === role;
+    return (
+      <button
+        type="button"
+        onClick={() => setSelectedRole(role)}
+        className={`w-full text-left p-5 border-2 rounded-2xl shadow-card transition-transform 
+          hover:scale-[1.01] active:scale-95 bg-card 
+          ${
+            active
+              ? 'border-primary bg-gradient-to-r from-primary/5 to-secondary/5'
+              : 'border-border'
+          }`}
+      >
+        <div className="text-4xl mb-3">{emoji}</div>
+        <h3 className="text-xl font-bold mb-1">{title}</h3>
+        <p className="text-sm text-muted-foreground">{description}</p>
+      </button>
+    );
+  };
 
   return (
-    <section className="card">
-      <header className="card__header">
-        <p className="eyebrow">Step 1</p>
-        <h2>Tell us how you participate</h2>
-        <p className="muted">Choose the option that best reflects your perspective.</p>
-      </header>
-      <div className="grid">
-        {roles.map((option) => {
-          const isSelected = role === option.id;
-          return (
-            <article key={option.id} className={`tile ${isSelected ? 'tile--active' : ''}`}>
-              <div>
-                <p className="eyebrow">{option.title}</p>
-                <p>{option.description}</p>
-              </div>
-              <PrimaryButton
-                type="button"
-                aria-pressed={isSelected}
-                onClick={() => setRole(option.id)}
-              >
-                {isSelected ? 'Selected' : 'Select'}
-              </PrimaryButton>
-            </article>
-          );
-        })}
+    <div className="max-w-md mx-auto space-y-6">
+      <div className="space-y-2 text-center">
+        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Step 1 of 2</p>
+        <h2 className="text-3xl font-extrabold">I am a...</h2>
       </div>
-    </section>
+
+      <div className="space-y-4">
+        <Card
+          role="artist"
+          title="Creative Talent"
+          description="I am looking for gigs, roles, and collaborations."
+          emoji="🌟"
+        />
+        <Card
+          role="recruiter"
+          title="Talent Seeker"
+          description="I am posting opportunities and hiring creatives."
+          emoji="🤝"
+        />
+      </div>
+
+      <PrimaryButton onClick={onContinue} disabled={!selectedRole || saving}>
+        {saving ? 'Saving...' : 'Continue'}
+      </PrimaryButton>
+    </div>
   );
-}
+};

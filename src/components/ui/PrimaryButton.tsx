@@ -1,27 +1,24 @@
-import { ButtonHTMLAttributes } from 'react';
-import { Spinner } from './Spinner';
-import './PrimaryButton.css';
+import React from 'react';
 
-type PrimaryButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  loading?: boolean;
+type Props = React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  fullWidth?: boolean;
 };
 
-export function PrimaryButton({ children, loading, disabled, ...props }: PrimaryButtonProps) {
-  return (
-    <button
-      className="primary-button"
-      disabled={disabled || loading}
-      aria-busy={loading}
-      data-loading={loading ? 'true' : 'false'}
-      {...props}
-    >
-      {loading ? (
-        <span className="primary-button__content">
-          <Spinner size="sm" light label="Loading" />
-        </span>
-      ) : (
-        <span className="primary-button__content">{children}</span>
-      )}
-    </button>
-  );
-}
+export const PrimaryButton: React.FC<Props> = ({
+  fullWidth = true,
+  className = '',
+  children,
+  ...rest
+}) => (
+  <button
+    {...rest}
+    className={`${
+      fullWidth ? 'w-full' : ''
+    } inline-flex items-center justify-center px-4 py-3 rounded-xl font-semibold text-white 
+    bg-gradient-to-r from-primary to-primary-glow 
+    shadow-lg hover:shadow-elevated active:scale-95 transition 
+    disabled:opacity-60 disabled:cursor-not-allowed ${className}`}
+  >
+    {children}
+  </button>
+);
