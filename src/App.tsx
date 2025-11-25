@@ -1,128 +1,65 @@
+import React from 'react';
+import { AppProvider, useAppContext } from './context/AppContext';
+import { RoleSelection } from './components/onboarding/RoleSelection';
 import { CategorySelection } from './components/onboarding/CategorySelection';
 import { ListingBoard } from './components/listings/ListingBoard';
-import { RoleSelection } from './components/onboarding/RoleSelection';
-import { PrimaryButton } from './components/ui/PrimaryButton';
-import { AppContextProvider, useAppContext } from './context/AppContext';
-import type { Category, Listing, Role } from './types';
+import { Spinner } from './components/ui/Spinner';
 
-const roles: { id: Role; title: string; description: string }[] = [
-  {
-    id: 'guardian',
-    title: 'Guardian',
-    description: 'Find trusted support for your child, from safe housing to education resources.',
-  },
-  {
-    id: 'provider',
-    title: 'Provider',
-    description: 'Share services, collaborate with guardians, and reach families quickly.',
-  },
-];
+const AppInner: React.FC = () => {
+  const { isReady, profile } = useAppContext();
 
-const categories: Category[] = [
-  {
-    id: 'housing',
-    label: 'Housing',
-    description: 'Emergency placements, long-term housing partners, and rapid response options.',
-  },
-  {
-    id: 'food',
-    label: 'Food security',
-    description: 'Community kitchens, weekend boxes, and culturally relevant groceries.',
-  },
-  {
-    id: 'wellness',
-    label: 'Health & wellness',
-    description: 'Therapy, medical clinics, and trauma-informed care providers.',
-  },
-  {
-    id: 'education',
-    label: 'Education',
-    description: 'Tutoring, specialized programs, and school enrollment guidance.',
-  },
-  {
-    id: 'legal',
-    label: 'Legal & advocacy',
-    description: 'Youth advocacy partners, court support, and rights education.',
-  },
-];
+  if (!isReady || profile === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10">
+        <Spinner label="Booting Shuaka..." />
+      </div>
+    );
+  }
 
-const listings: Listing[] = [
-  {
-    id: 'safe-beds',
-    title: 'Safe Beds Network',
-    categoryId: 'housing',
-    summary: 'Short-term placements with vetted host families and transportation support.',
-    contact: 'beds@safe.org',
-    featured: true,
-  },
-  {
-    id: 'harbor',
-    title: 'Harbor House',
-    categoryId: 'housing',
-    summary: '24/7 shelter with on-site clinicians and guardian coordination.',
-    contact: 'intake@harbor.org',
-  },
-  {
-    id: 'groceries',
-    title: 'Community Groceries Program',
-    categoryId: 'food',
-    summary: 'Weekly groceries for families, with culturally specific ingredients available.',
-    contact: 'hello@groceries.org',
-  },
-  {
-    id: 'therapy',
-    title: 'Trauma-Informed Therapy Collective',
-    categoryId: 'wellness',
-    summary: 'Sliding-scale therapy with providers trained in youth-centered care.',
-    contact: 'care@therapycollective.org',
-    featured: true,
-  },
-  {
-    id: 'tutoring',
-    title: 'Neighborhood Tutoring',
-    categoryId: 'education',
-    summary: 'After-school tutoring with volunteer educators and study materials.',
-    contact: 'support@tutoring.org',
-  },
-  {
-    id: 'advocacy',
-    title: 'Youth Advocacy Project',
-    categoryId: 'legal',
-    summary: 'Court accompaniment, rights education, and family-first advocacy.',
-    contact: 'intake@yap.org',
-  },
-];
+  // No profile document yet => Step 1
+  if (profile === undefined) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 flex items-center justify-center px-4">
+        <RoleSelection />
+      </div>
+    );
+  }
 
-function AppContent() {
-  const { clearSelections } = useAppContext();
+  // Role chosen but no category / not complete => Step 2
+  if (!profile.isProfileComplete || !profile.category) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 flex items-center justify-center px-4">
+        <CategorySelection />
+      </div>
+    );
+  }
 
+  // Fully onboarded => main board
   return (
-    <div className="layout">
-      <header className="page-header">
-        <div>
-          <p className="eyebrow">Shuaka</p>
-          <h1>Match guardians with reliable providers</h1>
-          <p className="muted">
-            A focused onboarding flow that captures who you are and surfaces the support that matters most.
-          </p>
-        </div>
-        <PrimaryButton type="button" onClick={clearSelections}>
-          Start over
-        </PrimaryButton>
-      </header>
-      <main className="stack">
-        <RoleSelection roles={roles} />
-        <CategorySelection categories={categories} />
-        <ListingBoard listings={listings} categories={categories} />
-      </main>
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 px-4 py-8">
+      <div className="max-w-5xl mx-auto space-y-8">
+        <header className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center justify-center w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-primary-glow text-white font-black">
+              S
+            </span>
+            <div>
+              <h1 className="font-bold text-xl tracking-tight">Shuaka</h1>
+              <p className="text-xs text-muted-foreground">Swiping for serious creatives</p>
+            </div>
+          </div>
+        </header>
+
+        <ListingBoard />
+      </div>
     </div>
   );
-}
+};
 
-export default function App() {
-  return (
-    <AppContextProvider>
-      <AppContent />
-    </AppContextProvider>
-  );
-}
+const App: React.FC = () => (
+  <AppProvider>
+    <AppInner />
+  </AppProvider>
+);
+
+export default App;
