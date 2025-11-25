@@ -1,18 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import './index.css';
 import App from './App';
-import { AppContextProvider } from './context/AppContext';
 
-const rootElement = document.getElementById('root');
-
-if (!rootElement) {
-  throw new Error('Root container missing');
-}
-
-ReactDOM.createRoot(rootElement).render(
+ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
-    <AppContextProvider>
-      <App />
-    </AppContextProvider>
+    <App />
   </React.StrictMode>
 );
