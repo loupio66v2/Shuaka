@@ -1,10 +1,9 @@
 import { CategorySelection } from './components/onboarding/CategorySelection';
-import { RoleSelection } from './components/onboarding/RoleSelection';
 import { ListingBoard } from './components/listings/ListingBoard';
+import { RoleSelection } from './components/onboarding/RoleSelection';
 import { PrimaryButton } from './components/ui/PrimaryButton';
-import { useAppContext } from './context/AppContext';
+import { AppContextProvider, useAppContext } from './context/AppContext';
 import type { Category, Listing, Role } from './types';
-import './index.css';
 
 const roles: { id: Role; title: string; description: string }[] = [
   {
@@ -94,7 +93,7 @@ const listings: Listing[] = [
   },
 ];
 
-export default function App() {
+function AppContent() {
   const { clearSelections } = useAppContext();
 
   return (
@@ -117,5 +116,13 @@ export default function App() {
         <ListingBoard listings={listings} categories={categories} />
       </main>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AppContextProvider>
+      <AppContent />
+    </AppContextProvider>
   );
 }
